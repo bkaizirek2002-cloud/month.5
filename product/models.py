@@ -27,7 +27,6 @@ class Review(models.Model):
     )
     author = models.CharField(max_length=100, null=True, blank=True)
     text = models.TextField()
-    # Поле рейтинга от 1 до 5
     stars = models.PositiveSmallIntegerField(
         choices=[(i, str(i)) for i in range(1, 6)],
         help_text="Рейтинг отзыва от 1 до 5 звёзд",

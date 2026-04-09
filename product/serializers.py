@@ -27,7 +27,6 @@ class ProductWithReviewsSerializer(serializers.ModelSerializer):
     def get_rating(self, obj):
         reviews = obj.reviews.all()
         if reviews.exists():
-            # Считаем средний балл по полю stars
             total_stars = sum([review.stars for review in reviews])
             return round(total_stars / reviews.count(), 2)
         return 0.0
