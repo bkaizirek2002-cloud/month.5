@@ -3,6 +3,10 @@ from .models import Category, Product, Review
 
 class CategorySerializer(serializers.ModelSerializer):
     products_count = serializers.SerializerMethodField()
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("Название категории слишком короткое!")
+        return value
 
     class Meta:
         model = Category
@@ -12,13 +16,32 @@ class CategorySerializer(serializers.ModelSerializer):
         return obj.products.count()
 
 class ReviewSerializer(serializers.ModelSerializer):
+    def validate_stars(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Оценка должна быть от 1 до 5.")
+        return value
+
+    def validate_text(self, value):
+        if len(value) < 10:
+            raise serializers.ValidationError("Отзыв слишком короткий, напишите подробнее.")
+        return value
     class Meta:
         model = Review
-        fields = ['id', 'author', 'text', 'stars', 'created_at']
+        fields = ['id', 'author', 'text', 'stars', 'product', 'created_at']
+        
 
 class ProductWithReviewsSerializer(serializers.ModelSerializer):
     reviews = ReviewSerializer(many=True, read_only=True)
     rating = serializers.SerializerMethodField()
+    def validate(self, data):
+        price = data.get('price')
+        if price is not None and price <= 0:
+            raise serializers.ValidationError({"price": "Цена должна быть больше нуля!"})
+      
+        if data.get('title') == data.get('description'):
+            raise serializers.ValidationError("Описание не должно совпадать с названием.")
+            
+        return data
 
     class Meta:
         model = Product
