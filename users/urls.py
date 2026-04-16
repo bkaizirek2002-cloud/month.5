@@ -1,9 +1,13 @@
-from django.urls import path
-from .views import RegisterAPIView, ConfirmAPIView
-from rest_framework_simplejwt.views import TokenObtainPairView 
+from django.urls import path, include
+from rest_framework.routers import SimpleRouter
+from .views import CategoryViewSet, ProductViewSet, ReviewViewSet
+
+router = SimpleRouter()
+router.register(r'categories', CategoryViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'reviews', ReviewViewSet)
+
 
 urlpatterns = [
-    path('register/', RegisterAPIView.as_view()),
-    path('confirm/', ConfirmAPIView.as_view()),
-    path('login/', TokenObtainPairView.as_view(), name = 'token_obtain_pair'),
+    path('', include(router.urls)),
 ]
