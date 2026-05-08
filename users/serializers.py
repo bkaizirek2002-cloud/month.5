@@ -1,24 +1,66 @@
 from rest_framework import serializers
-from .models import User
+from rest_framework.exceptions import ValidationError
+from .models import ConfirmationCode
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-User = get_user_model()
 
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+CustomUser = get_user_model()
 
-    class Meta:
-        model = User
-        fields = ['username', 'password', 'email']
 
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        user.is_active = False  # На всякий случай дублируем
-        user.generate_code()
-        # Тут обычно отправляется письмо с кодом
-        print(f"Код для {user.username}: {user.confirmation_code}") 
-        return user
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['birthdate'] = str(user.birthdate) if user.birthdate else None
+        return token
 
-class ConfirmSerializer(serializers.Serializer):
-    username = serializers.CharField()
+class CustomTokenObtainPairserializer(TokenObtainPairSerializer):
+   
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token["email"] = user.email
+        token["is_staff"] = False
+        return token
+
+class UserBaseSerializer(serializers.Serializer):
+    email = serializers.CharField(max_length=150)
+    password = serializers.CharField()
+
+
+class AuthValidateSerializer(UserBaseSerializer):
+    pass
+
+
+class RegisterValidateSerializer(UserBaseSerializer):
+    def validate_username(self, email):
+        try:
+            CustomUser.objects.get(email=email)
+        except:
+            return email
+        raise ValidationError('CustomUser уже существует!')
+
+
+class ConfirmationSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
     code = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        user_id = attrs.get('user_id')
+        code = attrs.get('code')
+
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            raise ValidationError('CustomUser не существует!')
+
+        try:
+            confirmation_code = ConfirmationCode.objects.get(user=user)
+        except ConfirmationCode.DoesNotExist:
+            raise ValidationError('Код подтверждения не найден!')
+
+        if confirmation_code.code != code:
+            raise ValidationError('Неверный код подтверждения!')
+
+        return attrs

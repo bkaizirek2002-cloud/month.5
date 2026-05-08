@@ -1,13 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import SimpleRouter
-from .views import CategoryViewSet, ProductViewSet, ReviewViewSet
-
-router = SimpleRouter()
-router.register(r'categories', CategoryViewSet)
-router.register(r'products', ProductViewSet)
-router.register(r'reviews', ReviewViewSet)
-
+from django.urls import path
+from users.views import RegistrationAPIView, AuthorizationAPIView, ConfirmUserAPIView
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('registration/', RegistrationAPIView.as_view()),
+    path('authorization/', AuthorizationAPIView.as_view()),
+    path('confirm/', ConfirmUserAPIView.as_view())
 ]

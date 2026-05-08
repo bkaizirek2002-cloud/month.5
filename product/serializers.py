@@ -1,58 +1,81 @@
 from rest_framework import serializers
 from .models import Category, Product, Review
+from rest_framework.exceptions import ValidationError
+from common.validators import validate_user_age
+
+class ProductSerializer(serializers.ModelSerializer):
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and hasattr(request, 'auth'):
+            birthdate_from_token = request.auth.get('birthdate')
+            validate_user_age(birthdate_from_token)
+            
+        return attrs
 
 class CategorySerializer(serializers.ModelSerializer):
     products_count = serializers.SerializerMethodField()
-    def validate_name(self, value):
-        if len(value) < 2:
-            raise serializers.ValidationError("Название категории слишком короткое!")
-        return value
 
     class Meta:
         model = Category
         fields = ['id', 'name', 'products_count']
 
-    def get_products_count(self, obj):
-        return obj.products.count()
+    def get_products_count(self, category):
+            return Product.objects.filter(category=category).count()
+
 
 class ReviewSerializer(serializers.ModelSerializer):
-    def validate_stars(self, value):
-        if value < 1 or value > 5:
-            raise serializers.ValidationError("Оценка должна быть от 1 до 5.")
-        return value
-
-    def validate_text(self, value):
-        if len(value) < 10:
-            raise serializers.ValidationError("Отзыв слишком короткий, напишите подробнее.")
-        return value
     class Meta:
         model = Review
-        fields = ['id', 'author', 'text', 'stars', 'product', 'created_at']
-        
+        fields = '__all__'
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
 
 class ProductWithReviewsSerializer(serializers.ModelSerializer):
     reviews = ReviewSerializer(many=True, read_only=True)
     rating = serializers.SerializerMethodField()
-    def validate(self, data):
-        price = data.get('price')
-        title = data.get('title')
-        description = data.get('description')
-
-        if price is not None and price <= 0:
-            raise serializers.ValidationError({"price": "Цена должна быть больше нуля!"})
-
-        if title and description and title == description:
-            raise serializers.ValidationError({"detail": "Описание не должно совпадать с названием."})
-
-        return data
 
     class Meta:
         model = Product
         fields = ['id', 'title', 'description', 'price', 'category', 'reviews', 'rating']
+        depth = 1
 
     def get_rating(self, obj):
         reviews = obj.reviews.all()
         if reviews.exists():
-            total_stars = sum([review.stars for review in reviews])
-            return round(total_stars / reviews.count(), 2)
-        return 0.0
+            return round(sum([r.stars for r in reviews]) / reviews.count(), 2)
+        return None
+
+
+class CategoryValidateSerializer(serializers.Serializer):
+    name = serializers.CharField(required=True, min_length=2, max_length=100)
+
+
+class ProductValidateSerializer(serializers.Serializer):
+    title = serializers.CharField(required=True, min_length=2, max_length=255)
+    description = serializers.CharField(required=False, allow_blank=True)
+    price = serializers.FloatField(min_value=0.01)
+    category = serializers.IntegerField(min_value=1)
+
+    def validate_category(self, category_id):
+        try:
+            return Category.objects.get(id=category_id)
+        except Category.DoesNotExist:
+            raise ValidationError('Category does not exist')
+
+
+class ReviewValidateSerializer(serializers.Serializer):
+    text = serializers.CharField(required=True, min_length=1)
+    stars = serializers.IntegerField(min_value=1, max_value=5)
+    product = serializers.IntegerField(min_value=1)
+
+    def validate_product(self, product_id):
+        try:
+            return Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            raise ValidationError('Product does not exist')

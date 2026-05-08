@@ -1,13 +1,42 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
-import random
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from users.managers import CustomUserManager
+from datetime import date
 
-class User(AbstractUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=False)
-    confirmation_code = models.CharField(max_length=6, blank=True, null=True)
+    is_staff = models.BooleanField(default=False)
+    birthdate = models.DateField(
+        null=True, 
+        blank=True, 
+        verbose_name="Дата рождения"
+    )
 
-    def generate_code(self):
-        code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        self.confirmation_code = code
-        self.save()
-        return code
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.email or ''
+
+    def get_age(self):
+        """Вычисляет возраст пользователя на текущую дату."""
+        if not self.birthdate:
+            return None
+        today = date.today()
+        age = today.year - self.birthdate.year - (
+            (today.month, today.day) < (self.birthdate.month, self.birthdate.day)
+        )
+        return age
+
+
+
+class ConfirmationCode(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='confirmation_code')
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Код подтверждения для {self.user.email}"
