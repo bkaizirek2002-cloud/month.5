@@ -1,13 +1,12 @@
 import random
 import string
-
 from django.contrib.auth import authenticate, get_user_model
 from django.db import transaction
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
-
+from users.tasks import add, send_otp_mail
 from .models import ConfirmationCode
 from .serializers import (
     AuthValidateSerializer,
@@ -16,6 +15,7 @@ from .serializers import (
     CustomTokenObtainPairserializer
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
+
 
 CustomUser = get_user_model()
 
@@ -27,6 +27,7 @@ class AuthorizationAPIView(CreateAPIView):
     serializer_class = AuthValidateSerializer
 
     def post(self, request):
+        add.delay(8,2)
         serializer = AuthValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -68,6 +69,7 @@ class RegistrationAPIView(CreateAPIView):
             code = "".join(random.choices(string.digits, k=6))
 
             confirmation_code = ConfirmationCode.objects.create(user=user, code=code)
+            send_otp_mail.delay(email=email, otp=code)
 
         return Response(
             status=status.HTTP_201_CREATED,
