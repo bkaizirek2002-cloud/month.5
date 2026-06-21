@@ -1,6 +1,7 @@
 version: '3'
 services:
-  shop_api:
+  web:
+    container_name: "web"
     build:
       context: .
     ports:
@@ -8,12 +9,14 @@ services:
     env_file:
       .env 
     volumes:
-      - .:app 
+      - .:/app
+      - back_media:/app/media
+      - back_static:/app/static
     depends_on:
       - db
       - redis
-    command: sh -c "python manage.py runserver makemigrations  && python manage.py runserver migrate && python manage.py runserver && python manage.py runserver  0.0.0.0:8000"
-  
+    command: sh /app/entrypoint.sh
+    
   db:
     image: "postgres:14"
     environment:
@@ -24,11 +27,13 @@ services:
       - db_data:/var/lib/postgressql/data
 
   redis:
+    container_name: "redis_shop"
     image: redis:7
     volumes:
-    - redise_data:/data     
+    - redis_data:/data     
 
   celery_worker:
+    container_name: "worker_shop"
     build:
      context: .
 
@@ -55,6 +60,7 @@ services:
 
 
   celery_flower:
+    container_name: "flower_shop"
     build:
      context: .
 
@@ -69,6 +75,21 @@ services:
       - "5555:5555"
     
 
+  nginx:
+   container_name: "nginx_shop"
+   image: nginx:1.25
+   ports:
+    - "80:80"
+   depends_on:
+     - web
+   volumes:
+     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+     - back_media:/app/media 
+     - back_static:/app/static 
+
+
 volumes:
  db_data:
- redise_data:
+ redis_data:
+ back_media:
+ back_static:

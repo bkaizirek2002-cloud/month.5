@@ -160,7 +160,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -176,7 +177,7 @@ SWAGGER_SETTINGS = {
 }
 
 
-SIMPLE_JWT= {
+SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
@@ -189,7 +190,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 CACHES = {
     "default":{
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": config("REDICE_URL"),
+        "LOCATION": config("REDIS_URL"),
         "OPTIONS":{"CLIENT_CLASS": "django_redis.client.DefaultClient"
         }
     }
@@ -201,5 +202,5 @@ CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND")
 EMAIL_USE_TLS = True
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
-EMAIL_HOST_USER =config("EMAIL_HOST_USER")
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD") 

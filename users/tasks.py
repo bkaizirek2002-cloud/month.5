@@ -6,18 +6,16 @@ from django.conf import settings
 @shared_task
 def add(x, y):
     print(f"---------->args {x} and {y}-------------->")
-    #from time sleep
-    #sleep(15)
     return x + y
 
 @shared_task
-def send_otp_mail():
+def send_otp_mail(email, otp):
     print("sending" * 10)
     send_mail(
-        subject="You otp code",
-        message=f"otp code: {code}",
+        subject="You OTP code",
+        message=f"otp code: {otp}",
         from_email=settings.EMAIL_HOST_USER,
-        recipient_list=[mail],
+        recipient_list=[email],
         fail_silently=False,
     )
     return "OK"
@@ -31,9 +29,9 @@ def send_report_mail():
         from_email=settings.EMAIL_HOST_USER,
         recipient_list=[
             "bkaizirek2002@gmail.com", 
-            "azi.99kg.tls@gmail.com",
-            "riszav.01@gmail.com",
-            "abdillaevamedina6@gmail.com",
+            #"azi.99kg.tls@gmail.com",
+            #"riszav.01@gmail.com",
+            #"abdillaevamedina6@gmail.com",
         ],
         fail_silently=False,
     )
